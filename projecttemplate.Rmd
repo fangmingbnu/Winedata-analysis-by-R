@@ -1,0 +1,501 @@
+---
+title: "Wine Quality Exploration by Ming Fang"
+date: 25 october 2017
+output:
+html_document:
+theme: cerulean
+---
+<style type="text/css">
+
+body{ /* Normal  */
+      font-size: 12px;
+  }
+td {  /* Table  */
+  font-size: 8px;
+}
+h1.title {
+  font-size: 38px;
+  color: black;
+}
+h1 { /* Header 1 */
+  font-size: 28px;
+  color: black;
+}
+h2 { /* Header 2 */
+    font-size: 22px;
+  color: black;
+}
+h3 { /* Header 3 */
+  font-size: 18px;
+  font-family: "Times New Roman", Times, serif;
+  color: black;
+}
+code.r{ /* Code block */
+    font-size: 12px;
+}
+pre { /* Code block - determines code spacing between lines */
+    font-size: 14px;
+}
+</style>
+
+# main question:
+
+Which chemical properties influence the quality of white wines?
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/',
+echo=FALSE, warning=FALSE, message=FALSE)
+
+```
+# 1: install the file and library
+```{r echo = FALSE}
+setwd('C:/Users/fangming/Desktop/udacity/EDA/wine_quality_R')
+getwd()
+winedata <- read.csv('wineQualityWhites.csv')
+dim(winedata)
+
+library(ggplot2)
+library(GGally)
+library(dplyr)
+library(gridExtra)
+library(grid)
+```
+
+# 2: Data review
+
+## 2.1 Brief observation
+
+```{r echo = FALSE}
+names(winedata)
+dim(winedata)
+summary(winedata)
+```
+
+The wine dataset consists of 13 variables, with almost 4898 observations. These variables also includes the quality. The main goal of this analysis is to figure out the relationship between different paramterts with wine quality. 
+
+## 2.2 Scatterplot matrices
+```{r echo = FALSE}
+
+theme_set(theme_minimal(20))
+set.seed(1000)
+winedata_sub <- winedata[, c(2:13)]
+names(winedata_sub)
+ggpairs(winedata_sub[sample.int(nrow(winedata_sub), 10),])
+```
+This is the Scatterplot between those 13 paramters. From this, a brief observation of the data can be made, which provides a good clue for further analysis. 
+
+# 3: Univariate Plots Section
+
+## 3.1 acidity analysis
+```{r echo = FALSE}
+
+fixed.acidity <-ggplot(aes(fixed.acidity), 
+                       data = subset(winedata, !is.na(fixed.acidity)))+
+  geom_histogram(bins = 50)+
+  xlab("fixed acidity (tartaric acid - g / dm^3)") + 
+  ylab("Count") +
+  ggtitle("fixed acidity")
+
+volatile.acidity <-ggplot(aes(volatile.acidity), 
+                          data = subset(winedata, !is.na(volatile.acidity)))+
+  geom_histogram(bins = 50)+
+  xlab("volatile acidity(acetic acid-g/dm^3)") + 
+  ylab("Count") +
+  ggtitle(" volatile acidity")
+
+citric.acid <-ggplot(aes(citric.acid), 
+                     data = subset(winedata, !is.na(citric.acid)))+
+  geom_histogram(bins = 50)+
+  xlab("citric acid (g / dm^3)") + 
+  ylab("Count") +
+  ggtitle("citric acid")
+
+pH <- ggplot(aes(pH), data = subset(winedata, !is.na(pH)))+
+  geom_histogram(bins = 50)+
+  xlab("pH") + 
+  ylab("Count") +
+  ggtitle("pH")
+
+grid.arrange(fixed.acidity, volatile.acidity, citric.acid, pH, ncol = 2)
+
+fixed.acidity.adjust <- ggplot(aes(fixed.acidity), data = subset(winedata))+
+  geom_histogram(bins = 50)+
+  scale_x_continuous(lim = c(quantile(winedata$fixed.acidity, 0.01), 
+                             quantile(winedata$fixed.acidity, 0.99)))+
+  xlab("fixed acidity (tartaric acid - g / dm^3)") + 
+  ylab("Count") +
+  ggtitle("fixed acidity")
+
+volatile.acidity.adjust <- ggplot(aes(volatile.acidity), data=winedata)+
+  geom_histogram(bins = 50)+
+  scale_x_log10()+
+  xlab("volatile acidity(acetic acid-g/dm^3)") + 
+  ylab("Count") +
+  ggtitle(" volatile acidity")
+
+citric.acid.adjust <- ggplot(aes(citric.acid), data=winedata)+
+  geom_histogram(bins = 50)+
+  scale_x_continuous(lim = c(quantile(winedata$citric.acid, 0.01), 
+                             quantile(winedata$citric.acid, 0.99)))+
+  xlab("citric acid (g / dm^3)") + 
+  ylab("Count") +
+  ggtitle("citric acid")
+
+grid.arrange(fixed.acidity.adjust, volatile.acidity.adjust, 
+             citric.acid.adjust, ncol = 2)
+
+```
+The histogram of these four variables correlated with acidity, which includes volatile.Acidity, citric.Acid, pH, and fixed.Acidity, are plotted. Some histrograms have a long tail. Transforming the long tail data by log x axis or remove some outliers is performed to get a better understanding of the distribution of those data. From the histogram, we can see the distribution of volatile. Acidity, citric. Acid, pH, fixed.Acidity are close to the normal distribution. 
+
+## 3.2 quality analysis
+```{r echo = FALSE}
+ggplot(aes(quality), data=winedata)+
+  geom_bar(aes(color = quality))+
+  xlab("quality (score between 0 and 10)") + 
+  ylab("Count") +
+  ggtitle("quality")
+
+with(winedata, summary(quality))
+```
+
+Quality is a key parameter in this study. From the histrogram, it demonstrates a normal distribution. We can see that the quality distribution range from 3 to 9 with a median value around 6. 
+
+## 3.3 other analysis
+```{r echo = FALSE}
+density <- ggplot(aes(density), data=winedata)+
+  geom_histogram(bins=50)+
+  scale_x_continuous(lim = c(quantile(winedata$density, 0.01), 
+                             quantile(winedata$density, 0.99)))+
+  xlab("density (g/cm^3)") + 
+  ylab("Count") +
+  ggtitle("density")
+
+alcohol <- ggplot(aes(alcohol), data=winedata)+
+  geom_histogram(bins=50)+
+  xlab("alcohol (% by volume)") + 
+  ylab("Count") +
+  ggtitle("alcohol")
+
+residual.sugar <- ggplot(aes(residual.sugar), data=winedata)+
+  geom_histogram()+
+  scale_x_continuous(lim = c(quantile(winedata$residual.sugar, 0.01), 
+                             quantile(winedata$residual.sugar, 0.99)))+
+  xlab(" residual sugar (g/dm^3)") + 
+  ylab("Count") +
+  ggtitle("residual sugar")
+
+grid.arrange(density, alcohol, residual.sugar, ncol = 2)
+
+```
+Here we analysis the distribution of other three important variables including density, alcohol and residual.Sugar. From the histogram of density, the density distribution is very shallow, which range from 0.9 to 1.0. From the histogram of alcohol, it looks like two modes exist in the distribution. From the histogram of residual.Sugar, it looks like the distribution is skewed. These three distribution is very interesting, which should be pay attention in the further analysis. 
+
+# 4: Biivariate Plots Section
+## 4.1: acidity vs quality
+
+```{r echo = FALSE}
+plot4.1.1 <- ggplot(aes(factor(quality), y = pH), 
+                    data=subset(winedata, !is.na(pH)))+
+  geom_boxplot()+
+  stat_summary(fun.y = mean, geom ='point', shape =8)+
+  scale_y_continuous(lim = c(quantile(winedata$pH, 0.05), 
+                             quantile(winedata$pH, 0.95)))+
+  xlab("quality (score between 0 and 10)") + 
+  ylab("pH") +
+  ggtitle("pH vs quality")
+
+plot4.1.2 <- ggplot(aes(x = quality, y =pH), 
+                    data=subset(winedata, !is.na(pH)))+
+  geom_line(stat ='summary', fun.y = mean, color ='red')+
+  geom_line(stat ='summary', fun.y = median, color ='blue')+
+  xlab("quality (score between 0 and 10)") + 
+  ylab("pH") +
+  ggtitle("pH vs quality")
+
+grid.arrange(plot4.1.1, plot4.1.2, ncol = 1)
+```
+From this analysis, we can see that higher PH number indicate a higher quality. The quality 3 case is a exception. But since the sample number of quality 3 is very small. So a larger error might exist in the data of quality 3. 
+
+```{r echo = FALSE}
+plot4.1.3 <- ggplot(aes(x = pH, y = fixed.acidity), data=winedata)+
+  geom_point(position = position_jitter(h=0), color = 'orange')+
+  geom_line(stat = 'summary', fun.y = mean)+
+  geom_smooth()+
+  xlab("pH") + 
+  ylab("fixed acidity (tartaric acid - g / dm^3)") +
+  ggtitle("pH vs fixed.acidity")
+
+plot4.1.4 <- ggplot(aes(x = 0.25 * round(pH/ 0.25), y =fixed.acidity), 
+                    data=subset(winedata, !is.na(pH)))+
+  geom_line(stat ='summary', fun.y = mean)+
+  xlab("pH") + 
+  ylab("fixed acidity (tartaric acid - g / dm^3)") +
+  ggtitle("pH vs fixed.acidity")
+
+grid.arrange(plot4.1.3, plot4.1.4, ncol = 1)
+
+with(winedata, cor(pH, fixed.acidity) )
+```
+
+Since the PH value is a measurment of acidity. So how was the acidity corrlated with the pH. From the above graph, it is concluded that the higher fixed acidity, the smaller pH number. 
+
+```{r echo = FALSE}
+plot4.1.5 <- ggplot(aes(x=pH, y =volatile.acidity), data=winedata)+
+  geom_point(alpha = 1/10)+
+  geom_jitter(width = 0.25)+
+  xlab("pH") + 
+  ylab("volatile acidity (acetic acid - g / dm^3)") +
+  ggtitle("pH vs volatile acidity")
+
+plot4.1.6 <- ggplot(aes(x=pH,  y =citric.acid), data=winedata)+
+  geom_point(alpha = 1/10)+
+  geom_jitter(width = 0.25)+
+  xlab("pH") + 
+  ylab("volatile acidity (acetic acid - g / dm^3)") +
+  ggtitle("pH vs volatile acidity")
+
+with(winedata, cor(pH, volatile.acidity) )
+with(winedata, cor(pH, citric.acid) )
+
+grid.arrange(plot4.1.5, plot4.1.6, ncol = 1)
+```
+
+But from the above plot, the pH do not have very clear relationship with citric acid and voltaile acidity. 
+
+## 4.2: residual.sugar vs quality
+```{r echo = FALSE}
+plot4.2.1 <-ggplot(aes(x = quality, y =residual.sugar), data=winedata)+
+  geom_line(stat ='summary', fun.y = mean, color ='red')+
+  geom_line(stat ='summary', fun.y = median, color ='blue')+
+  xlab("quality (score between 0 and 10)") + 
+  ylab("residual sugar (g / dm^3)") +
+  ggtitle("residual.sugar vs quality")
+
+plot4.2.2 <-ggplot(aes(residual.sugar), data=winedata)+
+  geom_histogram(aes(fill = factor(quality)), bins = 50)+
+  scale_x_continuous(lim = c(quantile(winedata$residual.sugar, 0.01), 
+                             quantile(winedata$residual.sugar, 0.99)))+
+  xlab("residual sugar (g / dm^3)") + 
+  ylab("count") +
+  ggtitle("pH vs volatile acidity")
+
+grid.arrange(plot4.2.1, plot4.2.2, ncol = 1)
+ 
+```
+
+From the graph, we can see that the residual.sugar do not have a clear relation ship with quality. But the sugar has a peak located around 3, which is very interesting for further study. 
+
+## 4.3: chlorides vs quality
+
+```{r echo = FALSE}
+plot4.3.1 <- ggplot(aes(x = factor(quality), y =chlorides),
+                    data=subset(winedata, !is.na(chlorides)))+
+  geom_boxplot(aes(color = factor(quality)))+
+  stat_summary(fun.y = mean, geom ='point', shape =8)+
+  scale_y_continuous(lim = c(quantile(winedata$chlorides, 0.05), 
+                             quantile(winedata$chlorides, 0.95)))+
+  xlab("quality (score between 0 and 10)") + 
+  ylab(" chlorides (sodium chloride - g / dm^3") +
+  ggtitle("chlorides vs quality")
+
+plot4.3.2 <- ggplot(aes(x = quality, y =chlorides), 
+                    data=subset(winedata, !is.na(chlorides)))+
+  geom_line(stat ='summary', fun.y = mean)+
+  xlab("quality (score between 0 and 10)") + 
+  ylab("chlorides (sodium chloride - g / dm^3") +
+  ggtitle("chlorides vs quality")
+
+grid.arrange(plot4.3.1, plot4.3.2 , ncol = 1)
+
+quality_groups <- group_by(winedata, quality)
+winedata.fc_by_quality <- summarise(quality_groups,
+                                    chlorides_mean= mean(chlorides),
+                                    n = n())
+head(winedata.fc_by_quality )
+with(winedata, cor(quality, chlorides) )
+```
+
+From these two graph, we can see that the higher quality for the wine, there has less chlorides in the wine. 
+
+## 4.4: dioxide vs quality
+
+```{r echo = FALSE}
+winedata$free.sulfur.dioxide.percent <-  winedata$free.sulfur.dioxide/winedata$total.sulfur.dioxide
+
+plot4.4.1 <- ggplot(aes(x = quality, y =free.sulfur.dioxide.percent), 
+                    data=winedata)+
+  geom_line(stat ='summary', fun.y = mean)+
+  xlab("quality (score between 0 and 10)") + 
+  ylab("free.sulfur.dioxide.percent") +
+  ggtitle("dioxide vs quality")
+
+plot4.4.2 <- ggplot(aes(x = free.sulfur.dioxide, y =total.sulfur.dioxide), 
+                    data=winedata)+
+  geom_point(aes(color = factor(quality)))+
+  scale_x_continuous(lim = c(quantile(winedata$free.sulfur.dioxide, 0.01),
+                             quantile(winedata$free.sulfur.dioxide, 0.99)))+
+  scale_y_continuous(lim = c(quantile(winedata$total.sulfur.dioxide, 0.01), 
+                             quantile(winedata$total.sulfur.dioxide, 0.99)))+
+  xlab("free.sulfur.dioxide") + 
+  ylab("total.sulfur.dioxide") +
+  ggtitle("free.sulfur.dioxide vs total.sulfur.dioxide")
+
+grid.arrange(plot4.4.1, plot4.4.2, ncol = 2)
+
+ggplot(aes(x = total.sulfur.dioxide), data=winedata)+
+  geom_histogram(aes(fill = factor(quality)))+
+  facet_wrap(~quality)+
+  xlab("total.sulfur.dioxide") + 
+  ylab("count") +
+  ggtitle("total.sulfur.dioxide by quality")
+
+```
+ 
+From the analysis, we creat a new variable-free.sulfur.dioxide.percent. From the analysis, we can see quality has a positive relationship with such variable, except the quality3. That might results from that there has a relatively small samples in the quality 3. Beside that, we can also observe that the free fulful dioxide has a positive relation ship with total sulfur dioxide. 
+
+## 4.5: residual.sugar vs density
+```{r echo = FALSE}
+ggplot(aes(x = 0.5 * round(residual.sugar / 0.5), y = density), data=winedata)+
+  geom_point(position = position_jitter(), color = 'orange')+
+  geom_line(stat ='summary', fun.y = mean, color ='red')+
+  scale_x_continuous(lim = c(quantile(winedata$residual.sugar, 0.01), 
+                             quantile(winedata$residual.sugar, 0.99)))+
+  scale_y_continuous(lim = c(quantile(winedata$density, 0.01), 
+                             quantile(winedata$density, 0.99)))+
+  xlab("residual.sugar") + 
+  ylab("density (g / cm^3)") +
+  ggtitle("residual.sugar vs density")
+```
+From this graph, we know that the quality is negatively corelated with the density. Besides that,  
+
+```{r echo = FALSE}
+lm(I(density) ~I(residual.sugar), data = winedata)
+```
+
+Based on the simulation, we can see that such relation ship is linear. 
+
+## 4.5: quality vs density
+
+```{r echo = FALSE}
+ggplot(aes(x = quality, y =density), data=winedata)+
+  geom_point(position = position_jitter(), color = 'orange')+
+  geom_line(stat ='summary', fun.y = mean, color ='red')+
+  scale_x_continuous(lim = c(quantile(winedata$quality, 0.01), 
+                             quantile(winedata$quality, 0.99)))+
+  scale_y_continuous(lim = c(quantile(winedata$density, 0.01),
+                             quantile(winedata$density, 0.99)))+
+  xlab("quality") + 
+  ylab("density (g / cm^3)") +
+  ggtitle("quality vs density")
+```
+From this plot, we can see that the higher quality wine has less mean value of the density.
+
+# 5. Multivariate Plots Section
+## 5.1. alcohol parameter
+
+```{r echo = FALSE}
+summary(winedata$alcohol)
+winedata$alcohol.bucket <-  cut(winedata$alcohol, breaks = c(0,10,12,20))
+table(winedata$alcohol.bucket)
+```
+since we think there has two modes in the histogram of alcohol, so I cut the alcohol into three small regions based on the histogram distribution. 
+
+```{r echo = FALSE}
+ggplot(aes(x = quality), data=winedata)+
+  geom_histogram()+
+  facet_wrap(~alcohol.bucket)+
+  xlab("quality (score between 0 and 10)") + 
+  ylab("count") +
+  ggtitle("quality histogram")
+
+ggplot(aes(x = 0.2 * round(alcohol / 0.2), y = quality),data = winedata) +
+  geom_line(aes(color = alcohol.bucket), stat = 'summary', fun.y = mean)+
+  xlab("alcohol (% by volume)") + 
+  ylab("quality (score between 0 and 10)") +
+  ggtitle("alcohol vs quality")
+
+ggplot(aes(x = quality, y = density), data=winedata)+
+  geom_line(aes(color = alcohol.bucket), stat = 'summary', fun.y= mean)+
+  geom_line(linetype =  2, stat = 'summary', fun.y= mean)+
+  xlab("quality (score between 0 and 10)") + 
+  ylab("density (g/cm^3)") +
+  ggtitle("quality vs density")
+
+```
+
+From above graphs,the quality distribution is different within different alcohol range. Within the low alcohol range, the median value is low than 6. within the high alcohol range, the median of quality distribtion is higher than 6. From second graph, it can be ovserved that the relationship between density with quality is different while the alcohol range is different. Besides that, the plot demostrates that a low density indicates a higher alcohol. 
+
+## 5.2. pH vs fixed.acidity in different quality range
+```{r echo = FALSE}
+ggplot(aes(x = pH, y = fixed.acidity), data=winedata)+
+  geom_point(position = position_jitter(h=0), color = 'orange')+
+  geom_line(stat = 'summary', fun.y = mean)+
+  geom_smooth()+
+  facet_wrap(~quality)+
+  xlab("pH") + 
+  ylab("fixed.acidity") +
+  ggtitle("pH vs fixed.acidity")
+```
+From this graph, it illustrates that the pH has a negative correlation with the fixed.acidity value. When the quality is 3, there has some funny realationship. It results from the small sample number in quality 3. 
+
+# 6. Final Plots and Summary
+## 6.1 plot 1
+
+```{r echo = FALSE}
+ggplot(aes(x = quality, y =free.sulfur.dioxide.percent), data=winedata)+
+  geom_line(stat ='summary', fun.y = mean)+
+  xlab("quality (score between 0 and 10)") + 
+  ylab("free.sulfur.dioxide.percent") +
+  ggtitle("quality vs free.sulfur.dioxide.percent")
+```
+
+## 6.2 plot 2
+
+```{r echo = FALSE}
+ggplot(aes(x = factor(quality), y =chlorides), 
+       data=subset(winedata, !is.na(chlorides)))+
+  geom_boxplot()+
+  stat_summary(fun.y = mean, geom ='point', shape =8)+
+  scale_y_continuous(lim = c(quantile(winedata$chlorides, 0), 
+                             quantile(winedata$chlorides, 0.95)))+
+  xlab("quality (score between 0 and 10)") + 
+  ylab("chlorides (sodium chloride-g/dm^3") +
+  ggtitle("quality vs chlorides")
+```
+
+## 6.3 plot 3
+
+```{r echo = FALSE}
+ggplot(aes(x = quality, y =pH), data=subset(winedata, !is.na(pH)))+
+  geom_line(stat ='summary', fun.y = mean, color ='red')+
+  geom_line(stat ='summary', fun.y = median, color ='blue')+
+  xlab("quality (score between 0 and 10)") + 
+  ylab("pH") +
+  ggtitle("quality vs pH")
+```
+In this part, I select three plots which show the relationship between free.sulfur.dioxide.percent, pH, chlorides with quality. From the above analysis, these three relationship has a strong relation ship with quality. 
+
+## 6.4 predict model
+From the analysis, I think the pH, chlorides, free.sulfur.dioxide.percent, fixed.acidity, alcohol has a stong relation ship with quality. Since pH has a strong corrlation with fixed.acidity. we do not need to consider fixed.acidity in model. Based on these analysis, I built a model here and predict the quality based on some this model. 
+```{r echo = FALSE}
+m1 <- lm(I(quality) ~I(pH), data = winedata)
+m2 <- update(m1, ~.+chlorides)
+m3 <- update(m2, ~.+free.sulfur.dioxide.percent)
+m4 <- update(m3, ~.+alcohol)
+thisDiamond = data.frame(pH = 3.2 , chlorides = 0.04, 
+                         free.sulfur.dioxide.percent = 0.2, 
+                         fixed.acidity = 9, alcohol = 10)
+predict (m4, newdata = thisDiamond,
+                         interval ='prediction', level = 0.9)
+```
+
+# 7. Reflection
+Based on the analysis, the pH, chlorides, free.sulfur.dioxide.percent, fixed.acidity, alcohol has a stong relation ship with quality. The predictive model is built based on the corrlationship. 
+
+when I start to analyze the data, I found there has so many variables. It is very difficult to identify the relationship between each variables and how each variable corrlates with the quality. But the Scatterplot is a good start. From this, a brief observation of the data can be made, which provides a good clue for further analysis. Besides that, histogram is a good start to understand the each variables. 
+
+I also notice about that the data has some noise. It is very important to apply the mean() and median() method to obtain a more accurate undersanding about the data. With such method, some noise issue could be resolved. 
+
+
+
+
+
