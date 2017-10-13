@@ -43,7 +43,7 @@ pre { /* Code block - determines code spacing between lines */
 Which chemical properties influence the quality of white wines?
 
 ```{r global_options, include=FALSE}
-knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/',
+knitr::opts_chunk$set(fig.width=12, fig.height=12, fig.path='Figs/',
 echo=FALSE, warning=FALSE, message=FALSE)
 
 ```
@@ -85,56 +85,50 @@ ggpairs(winedata_sub[sample.int(nrow(winedata_sub), 10),])
 This is the Scatterplot between those 13 paramters. From this, a brief observation of the data can be made, which provides a good clue for further analysis. 
 
 # 3: Univariate Plots Section
-
-## 3.1 acidity analysis
+## 3.1 Acidity analysis
 ```{r echo = FALSE}
 
-fixed.acidity <-ggplot(aes(fixed.acidity), 
-                       data = subset(winedata, !is.na(fixed.acidity)))+
-  geom_histogram(bins = 50)+
+create_histogram_plot <- function(x.var, df, bin){
+  ggplot(df, aes_string(x = x.var)) +
+    geom_histogram(bins = bin)
+}
+
+fixed.acidity <- create_histogram_plot('fixed.acidity', winedata, 50) +
   xlab("fixed acidity (tartaric acid - g / dm^3)") + 
   ylab("Count") +
   ggtitle("fixed acidity")
 
-volatile.acidity <-ggplot(aes(volatile.acidity), 
-                          data = subset(winedata, !is.na(volatile.acidity)))+
-  geom_histogram(bins = 50)+
+volatile.acidity <-create_histogram_plot('volatile.acidity', winedata, 50) +
   xlab("volatile acidity(acetic acid-g/dm^3)") + 
   ylab("Count") +
   ggtitle(" volatile acidity")
 
-citric.acid <-ggplot(aes(citric.acid), 
-                     data = subset(winedata, !is.na(citric.acid)))+
-  geom_histogram(bins = 50)+
+citric.acid <-create_histogram_plot('citric.acid', winedata, 50)+
   xlab("citric acid (g / dm^3)") + 
   ylab("Count") +
   ggtitle("citric acid")
 
-pH <- ggplot(aes(pH), data = subset(winedata, !is.na(pH)))+
-  geom_histogram(bins = 50)+
+pH <- create_histogram_plot('pH', winedata, 50)+
   xlab("pH") + 
   ylab("Count") +
   ggtitle("pH")
 
 grid.arrange(fixed.acidity, volatile.acidity, citric.acid, pH, ncol = 2)
 
-fixed.acidity.adjust <- ggplot(aes(fixed.acidity), data = subset(winedata))+
-  geom_histogram(bins = 50)+
+fixed.acidity.adjust <- create_histogram_plot('fixed.acidity', winedata,  50)+
   scale_x_continuous(lim = c(quantile(winedata$fixed.acidity, 0.01), 
                              quantile(winedata$fixed.acidity, 0.99)))+
   xlab("fixed acidity (tartaric acid - g / dm^3)") + 
   ylab("Count") +
   ggtitle("fixed acidity")
 
-volatile.acidity.adjust <- ggplot(aes(volatile.acidity), data=winedata)+
-  geom_histogram(bins = 50)+
+volatile.acidity.adjust <- create_histogram_plot('volatile.acidity', winedata,  50)+
   scale_x_log10()+
   xlab("volatile acidity(acetic acid-g/dm^3)") + 
   ylab("Count") +
   ggtitle(" volatile acidity")
 
-citric.acid.adjust <- ggplot(aes(citric.acid), data=winedata)+
-  geom_histogram(bins = 50)+
+citric.acid.adjust <- create_histogram_plot('citric.acid', winedata,  50)+
   scale_x_continuous(lim = c(quantile(winedata$citric.acid, 0.01), 
                              quantile(winedata$citric.acid, 0.99)))+
   xlab("citric acid (g / dm^3)") + 
@@ -207,7 +201,7 @@ plot4.1.2 <- ggplot(aes(x = quality, y =pH),
                     data=subset(winedata, !is.na(pH)))+
   geom_line(stat ='summary', fun.y = mean, color ='red')+
   geom_line(stat ='summary', fun.y = median, color ='blue')+
-  xlab("quality (score between 0 and 10)") + 
+  xlab("quality (score between 0 and 10)(red - mean and blue - median") + 
   ylab("pH") +
   ggtitle("pH vs quality")
 
@@ -335,8 +329,8 @@ plot4.4.2 <- ggplot(aes(x = free.sulfur.dioxide, y =total.sulfur.dioxide),
                              quantile(winedata$free.sulfur.dioxide, 0.99)))+
   scale_y_continuous(lim = c(quantile(winedata$total.sulfur.dioxide, 0.01), 
                              quantile(winedata$total.sulfur.dioxide, 0.99)))+
-  xlab("free.sulfur.dioxide") + 
-  ylab("total.sulfur.dioxide") +
+  xlab("free sulfur dioxide (mg/dm^3)") + 
+  ylab("total sulfur dioxide (mg/dm^3)") +
   ggtitle("free.sulfur.dioxide vs total.sulfur.dioxide")
 
 grid.arrange(plot4.4.1, plot4.4.2, ncol = 2)
@@ -361,8 +355,8 @@ ggplot(aes(x = 0.5 * round(residual.sugar / 0.5), y = density), data=winedata)+
                              quantile(winedata$residual.sugar, 0.99)))+
   scale_y_continuous(lim = c(quantile(winedata$density, 0.01), 
                              quantile(winedata$density, 0.99)))+
-  xlab("residual.sugar") + 
-  ylab("density (g / cm^3)") +
+  xlab("residual sugar(g/dm^3)") + 
+  ylab("density (g/cm^3)") +
   ggtitle("residual.sugar vs density")
 ```
 From this graph, we know that the quality is negatively corelated with the density. Besides that,  
@@ -383,8 +377,8 @@ ggplot(aes(x = quality, y =density), data=winedata)+
                              quantile(winedata$quality, 0.99)))+
   scale_y_continuous(lim = c(quantile(winedata$density, 0.01),
                              quantile(winedata$density, 0.99)))+
-  xlab("quality") + 
-  ylab("density (g / cm^3)") +
+  xlab("quality (score between 0 and 10)") + 
+  ylab("density (g/cm^3)") +
   ggtitle("quality vs density")
 ```
 From this plot, we can see that the higher quality wine has less mean value of the density.
@@ -432,7 +426,7 @@ ggplot(aes(x = pH, y = fixed.acidity), data=winedata)+
   geom_smooth()+
   facet_wrap(~quality)+
   xlab("pH") + 
-  ylab("fixed.acidity") +
+  ylab("fixed acidity (tartaric acid - g/dm^3)") +
   ggtitle("pH vs fixed.acidity")
 ```
 From this graph, it illustrates that the pH has a negative correlation with the fixed.acidity value. When the quality is 3, there has some funny realationship. It results from the small sample number in quality 3. 
@@ -470,7 +464,7 @@ ggplot(aes(x = quality, y =pH), data=subset(winedata, !is.na(pH)))+
   geom_line(stat ='summary', fun.y = median, color ='blue')+
   xlab("quality (score between 0 and 10)") + 
   ylab("pH") +
-  ggtitle("quality vs pH")
+  ggtitle("quality vs pH (red - mean and blue - median)")
 ```
 In this part, I select three plots which show the relationship between free.sulfur.dioxide.percent, pH, chlorides with quality. From the above analysis, these three relationship has a strong relation ship with quality. 
 
@@ -494,6 +488,12 @@ Based on the analysis, the pH, chlorides, free.sulfur.dioxide.percent, fixed.aci
 when I start to analyze the data, I found there has so many variables. It is very difficult to identify the relationship between each variables and how each variable corrlates with the quality. But the Scatterplot is a good start. From this, a brief observation of the data can be made, which provides a good clue for further analysis. Besides that, histogram is a good start to understand the each variables. 
 
 I also notice about that the data has some noise. It is very important to apply the mean() and median() method to obtain a more accurate undersanding about the data. With such method, some noise issue could be resolved. 
+
+For the fugure work, I think the procedure to analyse such data should follow below steps:
+1: obtain a brief overreview about the data by the scatterplot
+2: develop code to plot the histogram of each variables and find the potential trend
+3: build corrlations between each selected variable with key result
+4: build model to summarize the results and use predictive result to prove the model accuracy
 
 
 
